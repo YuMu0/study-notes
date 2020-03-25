@@ -52,6 +52,95 @@ unique_ptr是C++11才开始提供的类型，是一种在异常时可以帮助�
 
 * unique_ptr用于**取代auto_ptr**
 
+**注意：**
+
+> 智能指针的拷贝是浅拷贝，如果我们直接改变了对象的值，那么指向它的指针都会指向新值
+
+#### 智能指针shared_ptr的实现
+
+```c++
+/*智能指针类定义*/
+template<class T>
+class SmartPtr
+{
+private:
+	T *ptr;
+	int *use_count;
+public:
+	SmartPtr(T *p);
+	~SmartPtr();
+	SmartPtr(const SmartPtr<T> &orig);
+	SmartPtr<T> & operator = (const SmartPtr<T> &orig);
+};
+
+/*构造函数*/
+template<class T>
+SmartPtr<T>::SmartPtr(T *p) : ptr(p)
+{
+	try 
+	{
+		use_count = new int(1);
+	}
+	catch (...)
+	{
+		delete ptr;
+		ptr = nullptr;
+		use_count = nullptr;
+		cout << "Allocate memory for use_count fails" << endl;
+		exit(1);
+	}
+	cout << "Constructor is called!" << endl;
+}
+
+/*析构函数*/
+template<class T>
+SmartPtr<T>::~SmartPtr()
+{
+	/*只有最后一个引用时才释放内存*/
+	if (--(*use_count) == 0)
+	{
+		delete ptr;
+		ptr = nullptr;
+		delete use_count;
+		use_count = nullptr;
+		cout << "Destructor is called!" << endl;
+	}
+}
+
+/*拷贝构造函数*/
+template<class T>
+SmartPtr<T>::SmartPtr(const SmartPtr<T>& orig)
+{
+	ptr = orig.ptr;
+	use_count = orig.use_count;
+	(*use_count)++;
+	cout << "Copy constructor is called!" << endl;
+}
+
+/*赋值操作符重载*/
+template<class T>
+SmartPtr<T>& SmartPtr<T>::operator = (const SmartPtr<T> &orig)
+{
+    ++(*orig.use_count);		//先让原先的引用计数+1
+
+	/*=左边的指针对象引用数-1，如果为0，要释放*/
+    if (--(*this->use_count) == 0)
+    {
+        delete ptr;
+        delete use_count;
+        cout << "Left side object is deleted!" << endl;
+    }
+
+    this->ptr = orig.ptr;
+    this->use_count = orig.use_count;
+    
+    cout << "Assignment operator overloaded is called!" << endl;
+    return *this;
+}
+```
+
+
+
 #### 强制类型转换运算符
 
 旧式风格的类型转换
