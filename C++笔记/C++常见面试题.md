@@ -1,3 +1,23 @@
+#### C++多态
+
+1. 静态多态
+
+即重载和模板，静态多态在**编译期间**完成，编译器会根据实参类型来调用合适的函数
+
+2. 动态多态
+
+程序在运行时根据基类的指针指向的对象来确定自己该调用哪个类的虚函数
+
+#### 虚函数
+
+不能被定义为虚函数的函数：
+
+* 友元函数，它不是类的成员函数
+* 静态成员函数，它属于类，不属于某个对象
+* 构造函数，构造函数执行时，还没有对象生成，无法执行动态绑定
+
+
+
 #### 引用和指针有什么区别？
 
 * 定义一个指针变量时，编译器会为它分配内存，而引用不占用任何内存
@@ -233,6 +253,7 @@ B+树相比于B树的优势：
 
 * 叶节点形成一个有序链表，更方便查找
 * 所有的查询都要查找到叶节点，查询性能是稳定的
+* 如果是进行范围查询，B树必须要通过中序遍历查找每个元素，而B+树只需要找到最小的元素再从链表依次遍历即可
 
 
 
@@ -363,24 +384,112 @@ vector内部是用**动态数组**的方式实现的，当进行`insert()`或`pu
 
 设计模式的核心就两个词：**组合**与**解耦**
 
-**工厂模式**
+[C++设计模式详解博客](https://www.cnblogs.com/chengjundu/p/8473564.html)
+
+**1. 工厂模式**
+
+在工厂模式中，创建对象时不会对客户端暴露创建逻辑，而是通过使用一个共同的接口来指向新创建的对象。工厂模式作为一种创建模式，一般在创建复杂对象时，考虑使用；在创建简单对象时，建议直接通过`new`来完成
 
 
 
-**单例模式**
+**2. 单例模式**
 
 简单来说就是一个类只能构建一个对象的设计模式
 
 其关键实现在于
 
-* 构造函数是私有的，即禁止用户自己声明并定义实例
-* 禁止赋值和拷贝
+* 构造函数是**私有的**，即禁止用户自己声明并定义实例
+* 禁止赋值和拷贝`=delete`
+* 类里有个获取实例的静态函数，可以全局访问
 
 优点
 
 * 单例模式会阻止其他对象实例化自己单例对象的副本，从而确保所有对象都访问唯一的实体
 
 使用场景，例如在Windows下就只能打开一个任务管理器。如果不使用机制对窗口对象进行唯一化，将弹出多个窗口，如果这些窗口显示的内容完全一致，则是重复对象，浪费内存资源；如果不同窗口内容不一致，更会给用户带来误解
+
+单例模式分为懒汉模式和饿汉模式
+
+**2.1 懒汉模式**
+
+即第一次用到类实例的时候才会去实例化一个对象。在访问量很小，甚至可能不会去访问的情况下，采用懒汉实现，这是以时间换空间。懒汉模式需要考虑线程安全
+
+懒汉式一般实现：非线程安全
+
+```c++
+//懒汉式一般实现：非线程安全，getInstance返回的实例指针需要delete
+class Singleton
+{
+public:
+    static Singleton* getInstance();
+    ~Singleton(){}
+private:
+    Singleton(){}                                        //构造函数私有
+    Singleton(const Singleton& obj) = delete;            //明确拒绝
+    Singleton& operator=(const Singleton& obj) = delete; //明确拒绝
+    
+    static Singleton* m_pSingleton;
+};
+
+Singleton* Singleton::m_pSingleton = NULL;
+
+Singleton* Singleton::getInstance()
+{
+    if(m_pSingleton == NULL)
+    {
+        m_pSingleton = new Singleton;
+    }
+    return m_pSingleton;
+}
+```
+
+要想线程安全，要么考虑加锁，要么返回一个reference指向local static对象，这种实现方式的好处是不需要去delete它
+
+```c++
+class Singleton
+{
+public:
+    static Singleton& getInstance();
+private:
+    Singleton(){}
+    Singleton(const Singleton&) = delete;  //明确拒绝
+    Singleton& operator=(const Singleton&) = delete; //明确拒绝
+};
+
+Singleton& Singleton::getInstance()
+{
+    static Singleton singleton;
+    return singleton;
+}
+```
+
+**2.2 恶汉模式**
+
+即单例类定义的时候就进行实例化。在访问量比较大，或者可能访问的线程比较多的时候，采用恶汉实现，可以实现更好的性能，这是以空间换时间
+
+```c++
+//饿汉式：线程安全，注意一定要在合适的地方去delete它
+class Singleton
+{
+public:
+    static Singleton* getInstance();
+private:
+    Singleton(){}                                    //构造函数私有
+    Singleton(const Singleton&) = delete;            //明确拒绝
+    Singleton& operator=(const Singleton&) = delete; //明确拒绝
+
+    static Singleton* m_pSingleton;
+};
+
+Singleton* Singleton::m_pSingleton = new Singleton();
+
+Singleton* Singleton::getInstance()
+{
+    return m_pSingleton;
+}
+```
+
+
 
 #### C++构造函数列表初始化
 
