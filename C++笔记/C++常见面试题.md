@@ -23,6 +23,33 @@
 * 引用必须在定义时被初始化，指针不必
 * 不存在指向空值的引用，但存在指向空值的指针
 
+#### NULL和nullptr的区别
+
+C++相比于C是强类型的，因为C++禁止了一些C中的隐式转换，比如将`void*`转换为任意类型
+
+在C语言中，NULL通常被定义为
+
+```c++
+#define NULL ((void*)0)
+```
+
+所以NULL实际上是一个空指针，在C语言中可以被转为其他类型，但C++不支持
+
+在C++中，NULL实际上就是0
+
+```c++
+void fun(void* i) {}
+void fun(int i) {}
+
+int main()
+{
+    fun(NULL);		//调用第二个函数
+    fun(nullptr)	//调用第一个函数
+}
+```
+
+
+
 #### new/delete和malloc/free的区别
 
 * new/new[]：完成了两件事，先底层调用malloc分配了内存，然后调用构造函数创建对象
@@ -367,7 +394,7 @@ B+树相比于B树的优势：
 1. const成员函数可以访问**非const对象的所有数据成员**，也可以访问**const对象内的所有数据成员**
 2. 非const成员函数可以访问**非const对象的所有数据成员**，但**不可以**访问**const对象的任意数据成员**
 
-3. 如果只有const成员函数，非const成员是可以调用的。当const版本和非const版本的成员函数同时出现时，非const对象调用非const成员函数
+3. 如果只有const成员函数，非const对象是可以调用的。当const版本和非const版本的成员函数同时出现时，非const对象调用非const成员函数
 4. const对象只能调用const成员函数，必须提供一个const版本的成员函数
 
 > 要想在const函数中修改成员变量，或者想要修改const对象的成员变量，则将这个变量用`mutable`修饰即可
@@ -375,6 +402,54 @@ B+树相比于B树的优势：
 const与#define的区别：
 
 `#define`属于宏，是预处理器的一部分。预处理是在编译之前的一道程序，简单地用字符串进行替换
+
+#### const用于重载
+
+1. const修饰函数时的重载
+
+因为const对象只能调用const成员函数，非const对象优先调用非const成员函数，因此用const修饰函数的重载是合法的
+
+2. const修饰传值变量时的重载
+
+```c++
+void fun(const int i) {}
+void fun(int i) {}
+```
+
+这样是不合法的，编译会出现错误，提示重定义
+
+因为这里是传值调用，无论形参有无const，实际上都不会改变实参的值
+
+3. const修饰指针或引用变量时的重载
+
+对于指针变量分两种情况
+
+```c++
+void fun(char* a) {}
+void fun(char* const a) {}
+```
+
+这样也是不合法的，两个指针都指向字符串变量，只不过一个是指针变量，一个是指针常量。编译也会出现错误，提示重定义
+
+```c++
+void fun(char* a) {}
+void fun(const char* a) {}
+```
+
+这样是合法的，两个都是指针变量，分别指向字符串常量和字符串变量
+
+另外对于引用
+
+```c++
+void fun(int &i) {}
+void fun(const int &i) {}
+```
+
+一个引用变量，一个引用常量。如果实参为const常量，则调用第二个函数
+
+对于const类型和非const类型，其函数调用方式和const对象和非const对象一致。const类型必须要用const类型的形参来匹配，而非const类型优先匹配非const类型，如果只有const类型也可匹配
+
+
 
 #### struct和class的区别
 
@@ -508,13 +583,13 @@ private:
     static Singleton* m_pSingleton;
 };
 
-Singleton* Singleton::m_pSingleton = NULL;
+Singleton* Singleton::m_pSingleton = nullptr;
 
 Singleton* Singleton::getInstance()
 {
-    if(m_pSingleton == NULL)
+    if(m_pSingleton == nullptr)
     {
-        m_pSingleton = new Singleton;
+        m_pSingleton = new Singleton();
     }
     return m_pSingleton;
 }
